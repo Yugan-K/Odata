@@ -1,0 +1,59 @@
+  METHOD pdc_in_detailset_update_entity.
+    DATA: pdc_data TYPE zcl_zfi_pdc_in_odata_mpc=>ts_pdc_in_detail,
+          wa_final TYPE zfi_pdc_in.
+
+
+    DATA(cheque_number) = it_key_tab[ name = 'ChequeNo' ]-value.
+    io_data_provider->read_entry_data( IMPORTING es_data = pdc_data ).
+
+    CLEAR wa_final.
+    IF cheque_number IS NOT INITIAL.
+
+      wa_final = CORRESPONDING #( pdc_data ).
+      IF wa_final-status <> 'F'.
+
+        IF pdc_data-sale_order IS NOT INITIAL.
+          pdc_data-sale_order = CONV vbeln( pdc_data-sale_order ).
+          SELECT SINGLE audat FROM vbak INTO wa_final-sale_order_date WHERE vbeln = pdc_data-sale_order.
+        ENDIF.
+
+        IF pdc_data-inv_number IS NOT INITIAL.
+          pdc_data-inv_number = CONV vbeln( pdc_data-inv_number ).
+          SELECT SINGLE vbeln,prctr FROM vbrp INTO @DATA(wa_invoice) WHERE vbeln = @pdc_data-inv_number.
+
+          IF wa_invoice IS NOT INITIAL.
+            wa_final-inv_number = wa_invoice-vbeln.
+            wa_final-profit_center = wa_invoice-prctr.
+            SELECT SINGLE fkdat, netwr FROM vbrk INTO @DATA(wa_vbrk) WHERE vbeln = @wa_invoice-vbeln.
+            IF wa_vbrk IS NOT INITIAL.
+              wa_final-inv_date = wa_vbrk-fkdat.
+              wa_final-inv_amt = wa_vbrk-netwr.
+            ENDIF.
+            CLEAR: wa_vbrk,wa_invoice.
+          ENDIF.
+        ENDIF.
+        MODIFY zfi_pdc_in FROM wa_final.
+
+        IF sy-subrc = 0.
+          er_entity-cheque_no = cheque_number.
+          er_entity-ret_msg = 'S'.
+        ELSE.
+          er_entity-cheque_no = cheque_number.
+          er_entity-ret_msg = 'E'.
+        ENDIF.
+
+      ELSE.
+        DELETE FROM zfi_pdc_in WHERE cheque_no = cheque_number.
+        IF sy-subrc = 0.
+          er_entity-cheque_no = cheque_number.
+          er_entity-ret_msg = 'S'.
+        ELSE.
+          er_entity-cheque_no = cheque_number.
+          er_entity-ret_msg = 'E'.
+        ENDIF.
+      ENDIF.
+
+      CLEAR wa_final.
+      CLEAR pdc_data.
+    ENDIF.
+  ENDMETHOD.
