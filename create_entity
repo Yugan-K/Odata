@@ -1,0 +1,29 @@
+  METHOD pdc_in_detailset_create_entity.
+    DATA: pdc_data TYPE zcl_zfi_pdc_in_odata_mpc=>ts_pdc_in_detail,
+          wa_final TYPE zfi_pdc_in.
+    io_data_provider->read_entry_data( IMPORTING es_data = pdc_data ).
+    IF pdc_data IS NOT INITIAL.
+      AUTHORITY-CHECK OBJECT 'F_BKPF_BUK' ID 'BUKRS' FIELD pdc_data-com_code.
+      IF sy-subrc EQ 0.
+        pdc_data-cheque_no = CONV char10( pdc_data-cheque_no ).
+        pdc_data-first_cheque = CONV char10( pdc_data-first_cheque ).
+        SELECT SINGLE cheque_no FROM zfi_pdc_in INTO @DATA(lv_cheq_no) WHERE cheque_no = @pdc_data-cheque_no.
+        IF lv_cheq_no IS INITIAL.
+          wa_final = CORRESPONDING #( pdc_data ).
+          wa_final-status = 'A'.
+          er_entity = CORRESPONDING #( pdc_data ).
+          MODIFY zfi_pdc_in FROM wa_final.
+          IF sy-subrc = 0.
+            er_entity-ret_msg = 'S'.
+          ELSE.
+            er_entity-ret_msg = 'Creation failed'.
+          ENDIF.
+          CLEAR wa_final.
+        ELSE.
+          er_entity-cheque_no = lv_cheq_no.
+          er_entity-ret_msg = 'Cheque number is already there!'.
+        ENDIF.
+        endif.
+      ENDIF.
+
+    ENDMETHOD.
