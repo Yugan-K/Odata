@@ -1,0 +1,6 @@
+  method PDC_IN_DETAILSET_GET_ENTITY.
+
+      data(cheque_number) = it_key_tab[ name = 'ChequeNo' ]-value.
+      SELECT SINGLE * from zfi_pdc_in INTO CORRESPONDING FIELDS OF er_entity WHERE cheque_no = cheque_number.
+
+  endmethod.
