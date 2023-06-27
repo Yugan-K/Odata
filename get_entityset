@@ -1,0 +1,15 @@
+ METHOD pdc_in_detailset_get_entityset.
+    DATA: it_final1 TYPE TABLE OF  zfi_pdc_in.
+    SELECT * FROM zfi_pdc_in INTO TABLE @DATA(it_final).
+
+    LOOP AT it_final ASSIGNING FIELD-SYMBOL(<fs_final>).
+      AUTHORITY-CHECK OBJECT 'F_BKPF_BUK' ID 'BUKRS' FIELD <fs_final>-com_code.
+      IF sy-subrc EQ 0.
+        APPEND <fs_final> TO it_final1.
+      ENDIF.
+
+    ENDLOOP.
+
+    SORT it_final1 BY cheque_no ASCENDING.
+    et_entityset = CORRESPONDING #( it_final1 ).
+  ENDMETHOD.
